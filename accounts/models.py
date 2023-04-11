@@ -89,7 +89,7 @@ class AcademicInfo(DateAbstract):
     roll_number = models.CharField(max_length=7)
     degree = models.CharField(max_length=100)
     department = models.CharField(max_length=100)
-    current_semester = models.PositiveSmallIntegerField()
+    current_semester = models.PositiveSmallIntegerField(null=True, blank=True)
     cgpa = models.FloatField(max_length=3)
 
     
@@ -98,8 +98,8 @@ class AcademicInfo(DateAbstract):
 
 class CompanyInfo(DateAbstract):
     user = models.OneToOneField(CustomUser, related_name="alumni_model", on_delete= models.CASCADE)
-    company = models.CharField(max_length=200)
-    designation = models.CharField(max_length=100)
+    company_name = models.CharField(max_length=200)
+    role = models.CharField(max_length=100)
     location = models.CharField( max_length=20)
     
     def __str__(self):

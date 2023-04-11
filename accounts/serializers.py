@@ -77,26 +77,41 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'password':{'write_only':True}
         }
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    user = CustomUserSerializer(read_only = True)
+    
+    class Meta:
+        model = UserProfile
+        fields = '__all__'
+    
+    def get_user(self, obj):
+        user_obj = obj.user
+        return CustomUserSerializer(user_obj).data
         
 class AcademicInfoSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(read_only=True)
+    user_data = UserProfileSerializer(read_only = True)
+    user = serializers.SerializerMethodField()
     
     class Meta:
         model = AcademicInfo
         fields = "__all__"
+        
+    def get_user(self, obj):
+        user_obj = obj.user
+        return CustomUserSerializer(user_obj).data
 
 class CompanyInfoSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(read_only=True)
+    user = serializers.SerializerMethodField()
+    user_data = UserProfileSerializer(read_only = True)
+    academic_data = AcademicInfoSerializer(read_only = True)
     
     class Meta:
         model = CompanyInfo
         fields = "__all__"
-
-        
-class UserProfileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserProfile
-        fields = ('id', 'avatar', 'first_name', 'last_name', 'gender', 'dob')
+    
+    def get_user(self, obj):
+        user_obj = obj.user
+        return CustomUserSerializer(user_obj).data
 
 
 class UserProfileDetailsSerializer(serializers.ModelSerializer):
@@ -107,6 +122,7 @@ class UserProfileDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'student', 'alumni', 'user_profile', 'academic_model', 'company_model')
+    
 
 
 class ChangePasswordSerializer(serializers.Serializer):

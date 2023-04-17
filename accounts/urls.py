@@ -1,11 +1,11 @@
 from django.urls import path, include
 
-from .views import (SignUpView, LoginView,  VerifyEmail,
+from .views import (LoginView,  VerifyEmail,
                     UserProfileListCreateAPIView, 
                     AcademicInfoListCreateAPIView, 
                     CompanyInfoListCreateAPIView,
                     UserRetrieveView, ChangePasswordView,
-                    RegisterView, LoginAPIView, 
+                    RegisterView, 
                     SetNewPasswordAPIView,
                     RequestPasswordResetEmail, PasswordTokenCheckAPI,)
 
@@ -22,7 +22,6 @@ urlpatterns = [
     path('signup', RegisterView.as_view(),name='signup' ),
 #     path('register', SignUpView.as_view(),name='register' ),
     path('email-verify', VerifyEmail.as_view(), name="email-verify"),
-    path('signin', LoginAPIView.as_view(), name='signin'),
     path('login', LoginView.as_view(),name='login' ),
     path('profile', UserRetrieveView.as_view(), name='profile'),
     path('changepassword', ChangePasswordView.as_view(), name='changepassword'),

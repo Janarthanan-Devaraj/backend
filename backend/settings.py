@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "corsheaders",
     'django_rest_passwordreset',
     'drf_yasg',
+    'storages',
 ]
 
 MIDDLEWARE = [
@@ -60,6 +61,7 @@ MIDDLEWARE = [
     
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
@@ -213,5 +215,42 @@ SWAGGER_SETTINGS = {
             'name': 'Authorization',
             'in': 'header'
         }
+    }
+}
+
+STATICFILES_LOCATION = 'static'
+MEDIAFILES_LOCATION = 'media'
+
+AWS_S3_CUSTOM_DOMAIN = '%s.s3.amazonaws.com' %  config("AWS_STORAGE_BUCKET_NAME")
+AWS_ACCESS_KEY_ID =  config("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY =  config("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME =  config("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = None
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
+
+MEDIA_ROOT = os.path.join (BASE_DIR, 'static/images/')
+STATIC_ROOT = os.path.join (BASE_DIR, 'static')
+
+STATIC_URL = "https://%s/%s/" % (AWS_S3_CUSTOM_DOMAIN, STATICFILES_LOCATION)
+MEDIA_URL = "https://%s/%s/" % (AWS_S3_CUSTOM_DOMAIN, MEDIAFILES_LOCATION)
+
+MEDIA_ROOT = os.path.join (BASE_DIR, 'static/images/')
+
+# DataBase 
+
+DB_NAME = 'postgresdatabase'
+DB_HOST = 'postgres-database.ciuipju72q4x.eu-north-1.rds.amazonaws.com'
+DB_PORT = 5432
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': DB_NAME,
+        'USER': config('POSTGRES_USER'),
+        'HOST': DB_HOST,
+        'PORT': DB_PORT,
+        'PASSWORD': config('POSTGRES_PASSWORD')
     }
 }

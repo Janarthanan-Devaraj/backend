@@ -8,6 +8,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from rest_framework_simplejwt.tokens import RefreshToken
 from django_rest_passwordreset.signals import reset_password_token_created
+from django.core.exceptions import ValidationError
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, username, email,password=None, student=False, alumni=False, **extra_fields):
@@ -56,6 +57,16 @@ class CustomUser(AbstractBaseUser, DateAbstract):
     REQUIRED_FIELDS = ['username']
 
     objects = CustomUserManager()
+    
+    
+    def clean(self):
+        # Check if the username is already taken
+        if CustomUser.objects.filter(username=self.username).exists():
+            raise ValidationError({'username': 'This username is already taken.'})
+
+        # Check if the email is already taken
+        if CustomUser.objects.filter(email=self.email).exists():
+            raise ValidationError({'email': 'This email is already taken.'})
 
     def __str__(self):
         return self.email
@@ -86,7 +97,7 @@ class UserProfile(DateAbstract):
     
 class AcademicInfo(DateAbstract):
     user = models.OneToOneField(CustomUser, related_name="student_model", on_delete= models.CASCADE)
-    roll_number = models.CharField(max_length=7)
+    roll_number = models.CharField(max_length=7, unique=True)
     degree = models.CharField(max_length=100)
     department = models.CharField(max_length=100)
     current_semester = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -95,6 +106,12 @@ class AcademicInfo(DateAbstract):
     
     def __str__(self):
         return self.user.email
+    
+    def clean(self):
+        # Check if the username is already taken
+        if AcademicInfo.objects.filter(username=self.roll_number).exists():
+            raise ValidationError({'roll_number': 'This roll number has already registered.'})
+    
 
 class CompanyInfo(DateAbstract):
     user = models.OneToOneField(CustomUser, related_name="alumni_model", on_delete= models.CASCADE)

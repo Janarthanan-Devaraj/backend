@@ -11,7 +11,7 @@ from .serializers import(CustomUserSerializer, User, LoginSerializer,
                          CompanyInfoSerializer, UserProfileSerializer,
                          UserProfileDetailsSerializer, ChangePasswordSerializer,
                          RegisterSerializer, EmailVerificationSerializer,
-                         LoginAPISerializer, ResetPasswordEmailRequestSerializer, 
+                         ResetPasswordEmailRequestSerializer, 
                          SetNewPasswordSerializer, LogoutSerializer)
 
 from rest_framework import status, generics, mixins
@@ -46,7 +46,7 @@ class RegisterView(generics.GenericAPIView):
         current_site = get_current_site(request).domain
         relative_link = reverse('email-verify')
 
-        absurl = 'http://localhost:3000/signup/email-verify/'+ str(token)
+        absurl = 'http://localhost:3000/auth/register/email-verify/'+ str(token)
 
         email_body = 'Hi '+user.username + ' Use the link below to verify your email \n' + absurl
         data = {'email_body': email_body, 'to_email': user.email,
@@ -118,54 +118,30 @@ class VerifyEmail(APIView):
             return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class SignUpView(APIView):
-    permission_classes = [AllowAny]
-    renderer_classes = (UserRenderer,)
+# class SignUpView(APIView):
+#     permission_classes = [AllowAny]
+#     renderer_classes = (UserRenderer,)
 
-    def post(self, request):
-        serializer = CustomUserSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
+#     def post(self, request):
+#         serializer = CustomUserSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         user = serializer.save()
 
-        refresh = RefreshToken.for_user(user)
+#         refresh = RefreshToken.for_user(user)
 
-        return Response({
-            "refresh": str(refresh),
-            "access": str(refresh.access_token),
-        })
+#         return Response({
+#             "refresh": str(refresh),
+#             "access": str(refresh.access_token),
+#         })
 
-class LoginAPIView(generics.GenericAPIView):
-    serializer_class = LoginAPISerializer
-    renderer_classes = (UserRenderer,)
-
-    def post(self, request):
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-        
-class LoginView(APIView):
-    permission_classes = [AllowAny]
+class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer
     renderer_classes = (UserRenderer,)
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        email = serializer.data.get("email")
-        password = serializer.data.get("password")
-
-        user = authenticate(request, email=email, password=password)
-        if user is None:
-            return Response({"error": "Invalid email or password"})
-
-        refresh = RefreshToken.for_user(user)
-
-        return Response({
-            "refresh": str(refresh),
-            "access": str(refresh.access_token),
-            "user_id" : user.id
-        })
+        return Response(serializer.data, status= status.HTTP_200_OK)
 
 class UserProfileListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = UserProfileSerializer
@@ -257,7 +233,7 @@ class RequestPasswordResetEmail(generics.GenericAPIView):
             current_site = get_current_site(request=request).domain
             relative_link = reverse(
                 'password-reset-confirm', kwargs={'uidb64': uidb64, 'token': token})
-            absurl = 'http://localhost:3000'+ relative_link
+            absurl = 'http://localhost:3000/auth/forgotpassword/password-reset/' + uidb64 + "/" + token
             email_body = f'Hello,\nUse the link below to reset your password:\n{absurl}\n'
             data = {'email_body': email_body, 'to_email': user.email, 'email_subject': 'Reset your password'}
             Util.send_email(data)

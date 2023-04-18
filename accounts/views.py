@@ -4,7 +4,9 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.shortcuts import redirect
-
+from .models import CustomUser, Favorite
+from rest_framework.permissions import AllowAny
+from backend.custom_methods import IsAuthenticatedCustom
 from .serializers import(CustomUserSerializer, User, LoginSerializer, 
                          UserProfile, AcademicInfo, 
                          CompanyInfo, AcademicInfoSerializer,
@@ -12,7 +14,8 @@ from .serializers import(CustomUserSerializer, User, LoginSerializer,
                          UserProfileDetailsSerializer, ChangePasswordSerializer,
                          RegisterSerializer, EmailVerificationSerializer,
                          ResetPasswordEmailRequestSerializer, 
-                         SetNewPasswordSerializer, LogoutSerializer)
+                         SetNewPasswordSerializer, LogoutSerializer,
+                         UserProfileMessageSerializer, FavoriteSerializer)
 
 from rest_framework import status, generics, mixins
 from django.utils.encoding import force_bytes
@@ -25,10 +28,14 @@ import jwt
 from django.conf import settings
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from rest_framework.viewsets import ModelViewSet
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import smart_str, force_str, smart_bytes, DjangoUnicodeDecodeError
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.contrib.sites.shortcuts import get_current_site
+import re
+from django.db.models import Q, Count,Subquery, OuterRef
+import json
 
 class RegisterView(generics.GenericAPIView):
     serializer_class = RegisterSerializer
@@ -270,14 +277,110 @@ class SetNewPasswordAPIView(generics.GenericAPIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response({'success': True, 'message': 'Password reset success'}, status=status.HTTP_200_OK)
+    
 
 
 
 
 
+class UserProfileMessageView(ModelViewSet):
+    queryset = UserProfile.objects.all()
+    serializer_class = UserProfileMessageSerializer
+    permission_classes = (IsAuthenticatedCustom, )
+
+    def get_queryset(self):
+        if self.request.method.lower() != "get":
+            return self.queryset
+
+        data = self.request.query_params.dict()
+        data.pop("page", None)
+        keyword = data.pop("keyword", None)
+
+        if keyword:
+            search_fields = (
+                "user__username", "first_name", "last_name", "user__email"
+            )
+            query = self.get_query(keyword, search_fields)
+            try:
+                return self.queryset.filter(query).filter(**data).exclude(
+                    Q(user_id=self.request.user.id) |
+                    Q(user__is_superuser=True)
+                ).distinct().order_by("user__user_favoured_id")
+            except Exception as e:
+                raise Exception(e)
+        
+        return self.queryset.filter(**data).exclude(
+            Q(user_id=self.request.user.id) |
+            Q(user__is_superuser=True)).distinct().order_by("user__user_favoured_id")
+        
+    @staticmethod
+    def get_query(query_string, search_fields):
+        query = None  # Query to search for every search term
+        terms = UserProfileMessageView.normalize_query(query_string)
+        for term in terms:
+            or_query = None  # Query to search for a given term in each field
+            for field_name in search_fields:
+                q = Q(**{"%s__icontains" % field_name: term})
+                if or_query is None:
+                    or_query = q
+                else:
+                    or_query = or_query | q
+            if query is None:
+                query = or_query
+            else:
+                query = query & or_query
+        return query
+
+    @staticmethod
+    def normalize_query(query_string, findterms=re.compile(r'"([^"]+)"|(\S+)').findall, normspace=re.compile(r'\s{2,}').sub):
+        return [normspace(' ', (t[0] or t[1]).strip()) for t in findterms(query_string)]
 
 
 
+class UpdateFavoriteView(APIView):
+    permission_classes = (IsAuthenticatedCustom,)
+    serializer_class = FavoriteSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            favorite_user = CustomUser.objects.get(id=serializer.validated_data["favorite_id"])
+        except Exception:
+            raise Exception("Favorite user does not exist")
+
+        try:
+            fav = request.user.user_favorites
+        except Exception:
+            fav = Favorite.objects.create(user_id=request.user.id)
+
+        favorite = fav.favorite.filter(id=favorite_user.id)
+        if favorite:
+            fav.favorite.remove(favorite_user)
+            return Response("removed")
+
+        fav.favorite.add(favorite_user)
+        return Response("added")
+
+class CheckIsFavoriteView(APIView):
+    permission_classes = (IsAuthenticatedCustom,)
+
+    def get(self, request, *args, **kwargs):
+        favorite_id = kwargs.get("favorite_id", None)
+        try:
+            favorite = request.user.user_favorites.favorite.filter(id=favorite_id)
+            if favorite:
+                return Response(True)
+            return Response(False)
+        except Exception:
+            return Response(False)
+class MeView(APIView):
+    permission_classes = (IsAuthenticatedCustom, )
+    serializer_class = UserProfileMessageSerializer
+
+    def get(self, request):
+        user_id = request.user.id
+        return Response({"id": user_id}, status=200)
 
 
 

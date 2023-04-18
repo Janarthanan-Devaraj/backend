@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-o42*zgjhzd7vy5l3#j^x=u)00jbv-b=*+m2d227tn!ws4+#t+1
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     
     'accounts',
     'posts',
+    'chat',
     'rest_framework',
     'rest_framework_simplejwt',
     "corsheaders",
@@ -65,6 +66,22 @@ MIDDLEWARE = [
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_HEADERS = (
+    'x-requested-with',
+    'content-type',
+    'accept',
+    'origin',
+    'authorization',
+    'accept-encoding',
+    'x-csrftoken',
+    'access-control-allow-origin',
+    'content-disposition'
+)
+CORS_ALLOW_CREDENTIALS = False
+CORS_ALLOW_METHODS = ('GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS')
+
+ROOT_URLCONF = 'vackend.urls'
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
@@ -101,13 +118,16 @@ DATABASES = {
 }
 
 REST_FRAMEWORK = {
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 20,
+    'EXCEPTION_HANDLER': 'backend.custom_methods.custom_exception_handler',
     'NON_FIELD_ERRORS_KEY': 'error',
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
 }
+
+
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
 
@@ -149,11 +169,6 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
-}
 
 
 SIMPLE_JWT = {
@@ -241,7 +256,7 @@ MEDIA_ROOT = os.path.join (BASE_DIR, 'static/images/')
 # DataBase 
 
 DB_NAME = 'postgresdatabase'
-DB_HOST = 'postgres-database.ciuipju72q4x.eu-north-1.rds.amazonaws.com'
+DB_HOST = 'django-postgres-database.ccxypcyd1nnh.us-east-1.rds.amazonaws.com'
 DB_PORT = 5432
 
 DATABASES = {
@@ -254,3 +269,4 @@ DATABASES = {
         'PASSWORD': config('POSTGRES_PASSWORD')
     }
 }
+SOCKET_SERVER = config("SOCKET_SERVER")

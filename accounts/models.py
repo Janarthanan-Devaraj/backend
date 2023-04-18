@@ -9,6 +9,7 @@ from django.urls import reverse
 from rest_framework_simplejwt.tokens import RefreshToken
 from django_rest_passwordreset.signals import reset_password_token_created
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, username, email,password=None, student=False, alumni=False, **extra_fields):
@@ -52,6 +53,7 @@ class CustomUser(AbstractBaseUser, DateAbstract):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
+    is_online = models.DateTimeField(default=timezone.now)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -83,9 +85,11 @@ class CustomUser(AbstractBaseUser, DateAbstract):
             'refresh': str(refresh) ,
             'access': str(refresh.access_token) ,
         }
+    class Meta:
+        ordering = ("created_at",)
 
 class UserProfile(DateAbstract):
-    user = models.OneToOneField(CustomUser, related_name="user_profile", on_delete= models.CASCADE)
+    user = models.OneToOneField(CustomUser, related_name='user_profile', on_delete= models.CASCADE)
     avatar = models.ImageField(upload_to="user_avatar", blank=True, null=True, default='https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460__340.png')
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
@@ -94,6 +98,9 @@ class UserProfile(DateAbstract):
     
     def __str__(self):
         return self.user.email
+    
+    class Meta:
+        ordering = ("created_at",)
     
 class AcademicInfo(DateAbstract):
     user = models.OneToOneField(CustomUser, related_name="student_model", on_delete= models.CASCADE)
@@ -127,4 +134,15 @@ class ClubInfo(DateAbstract):
     user = models.OneToOneField(CustomUser, related_name="club_model", on_delete= models.CASCADE)
     club_name = models.TextField()
 
+
+class Favorite(models.Model):
+    user = models.OneToOneField(CustomUser, related_name="user_favorite", on_delete=models.CASCADE)
+    favorite = models.ManyToManyField(CustomUser, related_name="user_favoured")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.user.username} + {self.favorite.username}"
+    
+    class Meta:
+        ordering = ("created_at",)   
 

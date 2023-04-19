@@ -294,6 +294,7 @@ class UserProfileMessageView(ModelViewSet):
 
         data = self.request.query_params.dict()
         data.pop("page", None)
+        data.pop("format", None)
         keyword = data.pop("keyword", None)
 
         if keyword:
